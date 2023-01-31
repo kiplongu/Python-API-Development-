@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import FastAPI, Response, status, HTTPException, Depends
 from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
@@ -6,8 +6,15 @@ from random import randrange
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
+from sqlalchemy.orm import Session
+from . import models
+from .database import engine, get_db
+
+models.Base.metadata.create_all(bind=engine)
+
 
 app = FastAPI()
+
 
 #pydantic model used to define how schema should look like 
 
@@ -59,6 +66,13 @@ def find_index_post(id):
 @app.get("/")
 def read_root():
     return {"message": "Welcome to my api dev journey for 22 days"}
+
+
+#code for testing
+
+@app.get("/sqlalchemy")
+def test_posts(db: Session= Depends(get_db)):
+    return{"status": "success"}
 
 
 @app.get("/posts")
@@ -113,7 +127,7 @@ def delete_post(id: int):
 
 @app.put("/posts/{id}")
 def update_post(id: int, post: Post):
-    cursor.execute("""UPDATE posts SET title=%s, content=%s, published=%s RETURNING *""", (post.title, post.content, post.published))
+    cursor.execute("""UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *""", (post.title, post.content, post.published, str(id)))
     updated_post = cursor.fetchone()
     conn.commit()
 
