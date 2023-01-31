@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Response, status, HTTPException, Depends
 from fastapi.params import Body
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from random import randrange
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -62,8 +62,9 @@ def find_index_post(id):
 def read_root():
     return {"message": "Welcome to my api dev journey for 22 days"}
 
+#retriving many posts
 
-@app.get("/posts")
+@app.get("/posts", response_model=list[schemas.Post])
 def get_posts(db: Session= Depends(get_db)):
     # Execute a query
     #cursor.execute(""" SELECT * FROM posts """)
@@ -75,7 +76,7 @@ def get_posts(db: Session= Depends(get_db)):
 
 #creating a post and the %s variable helps in securing against sql injection. also first %s goes with post.title etc
 
-@app.post("/posts", status_code=status.HTTP_201_CREATED)
+@app.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 def create_posts(post: schemas.PostCreate, db: Session= Depends(get_db)):
     # cursor.execute(""" INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING * """, (post.title, post.content, post.published))
     # new_post = cursor.fetchone()
@@ -89,7 +90,7 @@ def create_posts(post: schemas.PostCreate, db: Session= Depends(get_db)):
 
 #retrieving one individual post, the id field represents a path parameter
 
-@app.get("/posts/{id}")
+@app.get("/posts/{id}", response_model=schemas.Post)
 def get_post(id: int, db: Session= Depends(get_db)):
     # cursor.execute(""" SELECT * FROM posts WHERE id =%s""", (str(id)))
     # Post = cursor.fetchone()
@@ -123,7 +124,7 @@ def delete_post(id: int, db: Session= Depends(get_db)):
 
 #path operation for put/update request
 
-@app.put("/posts/{id}")
+@app.put("/posts/{id}", response_model=schemas.Post)
 def update_post(id: int, updated_post: schemas.PostCreate, db: Session= Depends(get_db)):
     # cursor.execute("""UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *""", (post.title, post.content, post.published, str(id)))
     # updated_post = cursor.fetchone()
@@ -138,3 +139,13 @@ def update_post(id: int, updated_post: schemas.PostCreate, db: Session= Depends(
     db.commit()
 
     return post_query.first()
+
+    #defining functionalities for users
+
+@app.post("/users", status_code=status.HTTP_201_CREATED)
+def create_user(user:schemas.UserCreate, db: Session= Depends(get_db)):
+    new_user = models.User(**user.dict())
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
